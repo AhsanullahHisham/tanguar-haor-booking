@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  role       Role
+  name       String
+  phone      String?
+  email      String   @unique
+  password   String   // hashed
+  kycStatus  String?  // pending/approved/rejected
+  createdAt  DateTime @default(now())
+  ownerProfile OwnerProfile?
+  bookings   Booking[]
+  reviews    Review[]
+}
+
+model OwnerProfile {
+  id            String  @id @default(cuid())
+  userId        String  @unique
+  businessName  String?
+  nidOrTrade    String?
+  payoutMethod  String?
+  payoutAccount String?
+  user          User    @relation(fields: [userId], references: [id])
+  boats         Boat[]
+}
+
+enum Role {
+  guest
+  owner
+  admin
+}
+
+model Boat {
+  id           String   @id @default(cuid())
+  ownerId      String
+  title        String
+  slug         String   @unique
+  description  String
+  type         BoatType
+  capacity     Int
+  cabinCount   Int      @default(0)
+  amenities    Json
+  pickupGhat   String
+  lat          Float
+  lng          Float
+  basePrice    Int
+  weekendPrice Int?
+  currency     String   @default("BDT")
+  minNights    Int      @default(1)
+  checkInTime  String?  @default("14:00")
+  checkOutTime String?  @default("11:00")
+  status       BoatStatus @default(active)
+  photos       BoatPhoto[]
+  seasonal     SeasonalPrice[]
+  addOns       AddOn[]
+  blocks       AvailabilityBlock[]
+  bookings     Booking[]
+  reviews      Review[]
+  createdAt    DateTime @default(now())
+}
+
+enum BoatStatus {
+  draft
+  pending
+  active
+  hidden
+}
+
+enum BoatType {
+  whole
+  cabin
+  seat
+}
+
+model BoatPhoto {
+  id        String @id @default(cuid())
+  boatId    String
+  url       String
+  sortOrder Int    @default(0)
+  boat      Boat   @relation(fields: [boatId], references: [id])
+}
+
+model SeasonalPrice {
+  id        String   @id @default(cuid())
+  boatId    String
+  startDate DateTime
+  endDate   DateTime
+  priceType String   // base/percentage/override
+  value     Int
+  boat      Boat     @relation(fields: [boatId], references: [id])
+}
+
+model AddOn {
+  id          String  @id @default(cuid())
+  boatId      String
+  name        String
+  description String?
+  price       Int
+  perPerson   Boolean @default(false)
+  boat        Boat    @relation(fields: [boatId], references: [id])
+}
+
+model AvailabilityBlock {
+  id        String   @id @default(cuid())
+  boatId    String
+  startDate DateTime
+  endDate   DateTime
+  note      String?
+  createdBy String   // ownerId or adminId
+  boat      Boat     @relation(fields: [boatId], references: [id])
+}
+
+model Booking {
+  id          String   @id @default(cuid())
+  boatId      String
+  userId      String
+  type        BoatType
+  startDate   DateTime
+  endDate     DateTime
+  guests      Int
+  cabins      Json?
+  seats       Int?
+  addOns      Json?
+  subtotal    Int
+  tax         Int      @default(0)
+  serviceFee  Int      @default(0)
+  total       Int
+  currency    String   @default("BDT")
+  status      BookingStatus
+  paymentMethod String?
+  paymentRef  String?
+  holdExpiresAt DateTime?
+  createdAt   DateTime @default(now())
+  boat        Boat     @relation(fields: [boatId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+enum BookingStatus {
+  pending
+  held
+  paid
+  cancelled
+  refunded
+}
+
+model Coupon {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  type       String   // percent/fixed
+  value      Int
+  minSpend   Int      @default(0)
+  validFrom  DateTime?
+  validTo    DateTime?
+  usageLimit Int?
+  used       Int      @default(0)
+}
+
+model Payout {
+  id         String   @id @default(cuid())
+  ownerId    String
+  bookingId  String
+  gross      Int
+  commission Int
+  net        Int
+  status     String   @default("pending") // pending/processing/paid
+  paidAt     DateTime?
+  reference  String?
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  boatId    String
+  userId    String
+  rating    Int
+  comment   String?
+  photos    Json?
+  createdAt DateTime @default(now())
+  boat      Boat     @relation(fields: [boatId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model AuditLog {
+  id       String   @id @default(cuid())
+  actorId  String
+  action   String
+  target   String
+  meta     Json?
+  createdAt DateTime @default(now())
+}
