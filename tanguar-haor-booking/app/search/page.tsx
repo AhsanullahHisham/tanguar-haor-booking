@@ -23,7 +23,11 @@ export default async function SearchPage({ searchParams }: { searchParams: any }
       const blocked = b.blocks.some(blk => overlaps(start, end, blk.startDate, blk.endDate))
       if (blocked) return false
       const now = new Date()
-      const activeBookings = b.bookings.filter(bb => (bb.status === 'paid' || bb.status === 'held') and (bb.holdExpiresAt == null || bb.holdExpiresAt > now))
+      const activeBookings = b.bookings.filter(
+        (bb) =>
+          (bb.status === 'paid' || bb.status === 'held') &&
+          (bb.holdExpiresAt == null || bb.holdExpiresAt > now)
+      )
       const booked = activeBookings.some(bb => overlaps(start, end, bb.startDate, bb.endDate))
       return !booked
     })
