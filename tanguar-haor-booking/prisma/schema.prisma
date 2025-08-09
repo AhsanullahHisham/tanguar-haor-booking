@@ -3,22 +3,23 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id         String   @id @default(cuid())
-  role       Role
-  name       String
-  phone      String?
-  email      String   @unique
-  password   String   // hashed
-  kycStatus  String?  // pending/approved/rejected
-  createdAt  DateTime @default(now())
+  id           String        @id @default(cuid())
+  role         Role
+  name         String
+  phone        String?
+  email        String        @unique
+  password     String
+  kycStatus    String?
+  createdAt    DateTime      @default(now())
   ownerProfile OwnerProfile?
-  bookings   Booking[]
-  reviews    Review[]
+  bookings     Booking[]
+  reviews      Review[]
+  boats        Boat[]        // ✅ owner হিসেবে যেসব Boat তার কাছে আছে
 }
 
 model OwnerProfile {
@@ -29,7 +30,7 @@ model OwnerProfile {
   payoutMethod  String?
   payoutAccount String?
   user          User    @relation(fields: [userId], references: [id])
-  boats         Boat[]
+  // ❌ আগের boats ফিল্ডটা এখানে থাকবে না
 }
 
 enum Role {
@@ -39,32 +40,33 @@ enum Role {
 }
 
 model Boat {
-  id           String   @id @default(cuid())
+  id           String      @id @default(cuid())
   ownerId      String
+  owner        User        @relation(fields: [ownerId], references: [id]) // ✅ সঠিক রিলেশন
   title        String
-  slug         String   @unique
+  slug         String      @unique
   description  String
   type         BoatType
   capacity     Int
-  cabinCount   Int      @default(0)
+  cabinCount   Int         @default(0)
   amenities    Json
   pickupGhat   String
   lat          Float
   lng          Float
   basePrice    Int
   weekendPrice Int?
-  currency     String   @default("BDT")
-  minNights    Int      @default(1)
-  checkInTime  String?  @default("14:00")
-  checkOutTime String?  @default("11:00")
-  status       BoatStatus @default(active)
+  currency     String      @default("BDT")
+  minNights    Int         @default(1)
+  checkInTime  String?     @default("14:00")
+  checkOutTime String?     @default("11:00")
+  status       BoatStatus  @default(active)
   photos       BoatPhoto[]
   seasonal     SeasonalPrice[]
   addOns       AddOn[]
   blocks       AvailabilityBlock[]
   bookings     Booking[]
   reviews      Review[]
-  createdAt    DateTime @default(now())
+  createdAt    DateTime    @default(now())
 }
 
 enum BoatStatus {
@@ -114,33 +116,33 @@ model AvailabilityBlock {
   startDate DateTime
   endDate   DateTime
   note      String?
-  createdBy String   // ownerId or adminId
+  createdBy String
   boat      Boat     @relation(fields: [boatId], references: [id])
 }
 
 model Booking {
-  id          String   @id @default(cuid())
-  boatId      String
-  userId      String
-  type        BoatType
-  startDate   DateTime
-  endDate     DateTime
-  guests      Int
-  cabins      Json?
-  seats       Int?
-  addOns      Json?
-  subtotal    Int
-  tax         Int      @default(0)
-  serviceFee  Int      @default(0)
-  total       Int
-  currency    String   @default("BDT")
-  status      BookingStatus
+  id            String        @id @default(cuid())
+  boatId        String
+  userId        String
+  type          BoatType
+  startDate     DateTime
+  endDate       DateTime
+  guests        Int
+  cabins        Json?
+  seats         Int?
+  addOns        Json?
+  subtotal      Int
+  tax           Int           @default(0)
+  serviceFee    Int           @default(0)
+  total         Int
+  currency      String        @default("BDT")
+  status        BookingStatus
   paymentMethod String?
-  paymentRef  String?
+  paymentRef    String?
   holdExpiresAt DateTime?
-  createdAt   DateTime @default(now())
-  boat        Boat     @relation(fields: [boatId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime      @default(now())
+  boat          Boat          @relation(fields: [boatId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
 }
 
 enum BookingStatus {
@@ -170,7 +172,7 @@ model Payout {
   gross      Int
   commission Int
   net        Int
-  status     String   @default("pending") // pending/processing/paid
+  status     String   @default("pending")
   paidAt     DateTime?
   reference  String?
 }
@@ -188,10 +190,10 @@ model Review {
 }
 
 model AuditLog {
-  id       String   @id @default(cuid())
-  actorId  String
-  action   String
-  target   String
-  meta     Json?
+  id        String   @id @default(cuid())
+  actorId   String
+  action    String
+  target    String
+  meta      Json?
   createdAt DateTime @default(now())
 }
